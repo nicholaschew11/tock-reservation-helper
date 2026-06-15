@@ -1,0 +1,17 @@
+.DS_Store
+.playwright-cli/
+work/
+
+outputs/node_modules/
+outputs/tock-profile/
+outputs/session-import-backups/
+outputs/artifacts/
+outputs/*.log
+outputs/fuhuihua_launchd.*.log
+outputs/*snapshot*.json
+outputs/preflight_readiness_*.json
+outputs/real_tock_route_observation.json
+outputs/postmortem_*.md
+outputs/validate_real_tock_checkout_routes.js
+outputs/source-cookies.*
+outputs/target-cookies.*
