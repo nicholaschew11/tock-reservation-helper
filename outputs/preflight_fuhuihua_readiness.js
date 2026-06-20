@@ -51,6 +51,9 @@ async function main() {
     const title = await page.title().catch(() => "");
     const body = await page.locator("body").innerText({ timeout: 3_000 }).catch(() => "");
     const normalized = body.replace(/\s+/g, " ");
+    const closedPreReleaseState = /reservations are unavailable|not currently accepting reservations/i.test(body);
+    const targetPartyVisible = new RegExp(`\\b${cfg.partySize}\\s+guests?\\b`, "i").test(body);
+    const targetDateVisible = new RegExp(datePattern(cfg.date), "i").test(body);
     const result = {
       capturedAt: new Date().toISOString(),
       profileDir: cfg.profileDir,
@@ -58,13 +61,17 @@ async function main() {
       title,
       checks: {
         cloudflareClear: !/security verification|not a bot|just a moment/i.test(`${title} ${body}`),
-        targetPartyVisible: new RegExp(`\\b${cfg.partySize}\\s+guests?\\b`, "i").test(body),
-        targetDateVisible: new RegExp(datePattern(cfg.date), "i").test(body),
+        targetPartyVisible,
+        targetDateVisible,
+        closedPreReleaseState,
         notOnCheckout: !/\/checkout(?:[/?#]|$)/i.test(page.url()),
       },
       bodyExcerpt: normalized.slice(0, 1800),
     };
-    result.ok = Object.values(result.checks).every(Boolean);
+    result.ok =
+      result.checks.cloudflareClear &&
+      result.checks.notOnCheckout &&
+      ((targetPartyVisible && targetDateVisible) || closedPreReleaseState);
 
     await fs.mkdir(cfg.artifactDir, { recursive: true });
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");

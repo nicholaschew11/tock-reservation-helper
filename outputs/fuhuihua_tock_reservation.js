@@ -87,6 +87,7 @@ Options:
   --no-opportunistic-first Do not click a visible slot before date scanning.
   --artifact-dir PATH      Save screenshots/HTML for action failures.
   --stop-after-ms N        Stop trying after this long. Default: 600000.
+  --hold-after-success-ms N Keep checkout browser open this long in non-interactive runs. Default: 3600000.
   --profile-dir PATH       Persistent browser profile. Default: ./tock-profile.
   --browser-channel NAME   Playwright browser channel. Default: chrome.
                            Use "" to force bundled Chromium.
@@ -144,6 +145,7 @@ function parseArgs(argv) {
     recoveryWaitMs: Number(process.env.TOCK_RECOVERY_WAIT_MS || DEFAULTS.recoveryWaitMs),
     jitterMs: Number(process.env.TOCK_JITTER_MS || DEFAULTS.jitterMs),
     stopAfterMs: Number(process.env.TOCK_STOP_AFTER_MS || DEFAULTS.stopAfterMs),
+    holdAfterSuccessMs: Number(process.env.TOCK_HOLD_AFTER_SUCCESS_MS || DEFAULTS.holdAfterSuccessMs),
     closedWeekdays: process.env.TOCK_CLOSED_WEEKDAYS
       ? parseNumberList(process.env.TOCK_CLOSED_WEEKDAYS)
       : DEFAULTS.closedWeekdays,
@@ -644,7 +646,7 @@ function urlParamMatches(page, key, value) {
 async function waitForTockRender(page, cfg, source) {
   const deadline = Date.now() + cfg.renderWaitMs;
   const readyText =
-    /all reservations|new reservations|not opened reservations|sold out|notify|\bbook\b|reserve now|reserve at|^reserve$|([1-9]|1[0-2]):[0-5]\d\s*(AM|PM)/i;
+    /all reservations|new reservations|not opened reservations|reservations are unavailable|not currently accepting reservations|sold out|notify|\bbook\b|reserve now|reserve at|^reserve$|([1-9]|1[0-2]):[0-5]\d\s*(AM|PM)/i;
   const selectorSentinels = [
     '[data-testid="booking-card-button"]',
   ];
@@ -1089,7 +1091,9 @@ async function runReservation(cfg) {
       return;
     }
 
-    if (/new reservations will be released/i.test(text)) {
+    if (/reservations are unavailable|not currently accepting reservations/i.test(text)) {
+      log("Tock is showing the closed pre-release page.");
+    } else if (/new reservations will be released/i.test(text)) {
       log("Still seeing the pre-release/sold-out page.");
     } else if (/sold out/i.test(text)) {
       log("Availability is still sold out for visible dates.");

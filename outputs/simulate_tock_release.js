@@ -21,6 +21,28 @@ function htmlForPage(url) {
   const initialPartySize = Number(query.get("size") || 3);
   const released = Date.now() >= releaseAt;
 
+  if (!released) {
+    return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Simulation - Fu Hui Hua Tock</title>
+  <style>
+    body { font: 16px system-ui, sans-serif; margin: 40px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Fù Huì Huá 馥薈華</h1>
+    <p>San Francisco, CA · Asian · $$$</p>
+    <p>Today 5:00 PM – 11:00 PM</p>
+    <h2>Reservations are unavailable.</h2>
+    <p>Fù Huì Huá 馥薈華 is not currently accepting reservations on Tock. Please check again soon.</p>
+  </main>
+</body>
+</html>`;
+  }
+
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -213,6 +235,7 @@ function runHelper(pageUrl, profileDir) {
     profileDir,
     "--artifact-dir",
     path.join(profileDir, "artifacts"),
+    "--browser-channel=",
     "--headless",
     "--fast-network",
   ];

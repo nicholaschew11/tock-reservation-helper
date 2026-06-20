@@ -42,6 +42,8 @@ TOCK_CLICK_TIMEOUT_MS="${TOCK_CLICK_TIMEOUT_MS:-4000}"
 TOCK_CLICK_RETRIES="${TOCK_CLICK_RETRIES:-2}"
 TOCK_RECOVERY_WAIT_MS="${TOCK_RECOVERY_WAIT_MS:-2500}"
 TOCK_JITTER_MS="${TOCK_JITTER_MS:-0}"
+TOCK_STOP_AFTER_MS="${TOCK_STOP_AFTER_MS:-1800000}"
+TOCK_HOLD_AFTER_SUCCESS_MS="${TOCK_HOLD_AFTER_SUCCESS_MS:-14400000}"
 
 if [[ ! -f "$HELPER_SCRIPT" ]]; then
   echo "Reservation helper script not found: $HELPER_SCRIPT"
@@ -84,6 +86,8 @@ echo "Writing run log to $LOG_FILE"
   --click-retries "$TOCK_CLICK_RETRIES" \
   --recovery-wait-ms "$TOCK_RECOVERY_WAIT_MS" \
   --jitter-ms "$TOCK_JITTER_MS" \
+  --stop-after-ms "$TOCK_STOP_AFTER_MS" \
+  --hold-after-success-ms "$TOCK_HOLD_AFTER_SUCCESS_MS" \
   --artifact-dir "$SCRIPT_DIR/artifacts" \
   "$@" 2>&1 | tee -a "$LOG_FILE"
 
