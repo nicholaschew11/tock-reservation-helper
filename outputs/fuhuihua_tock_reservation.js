@@ -40,6 +40,7 @@ const DEFAULTS = {
   holdAfterSuccessMs: 60 * 60 * 1000,
   scanDays: 60,
   closedWeekdays: [],
+  shutdownDates: [],
   opportunisticFirst: true,
   artifactDir: path.join(__dirname, "artifacts"),
   browserChannel: "chrome",
@@ -84,6 +85,7 @@ Options:
   --recovery-wait-ms N     Hold page after a failed action click. Default: 2500.
   --jitter-ms N            Max random polling jitter. Default: 250.
   --closed-weekdays A,B    Skip weekdays, Sunday=0 ... Saturday=6.
+  --shutdown-dates A,B     Stop if only these wrong-week dates are selectable.
   --no-opportunistic-first Do not click a visible slot before date scanning.
   --artifact-dir PATH      Save screenshots/HTML for action failures.
   --stop-after-ms N        Stop trying after this long. Default: 600000.
@@ -149,6 +151,9 @@ function parseArgs(argv) {
     closedWeekdays: process.env.TOCK_CLOSED_WEEKDAYS
       ? parseNumberList(process.env.TOCK_CLOSED_WEEKDAYS)
       : DEFAULTS.closedWeekdays,
+    shutdownDates: process.env.TOCK_SHUTDOWN_DATES
+      ? process.env.TOCK_SHUTDOWN_DATES.split(",").map((s) => s.trim()).filter(Boolean)
+      : DEFAULTS.shutdownDates,
     opportunisticFirst: process.env.TOCK_OPPORTUNISTIC_FIRST === "0" ? false : DEFAULTS.opportunisticFirst,
     artifactDir: process.env.TOCK_ARTIFACT_DIR || DEFAULTS.artifactDir,
     dates: [],
@@ -255,6 +260,9 @@ function parseArgs(argv) {
       case "closed-weekdays":
         cfg.closedWeekdays = parseNumberList(value);
         break;
+      case "shutdown-dates":
+        cfg.shutdownDates = value.split(",").map((s) => s.trim()).filter(Boolean);
+        break;
       case "no-opportunistic-first":
         cfg.opportunisticFirst = false;
         break;
@@ -348,6 +356,9 @@ function parseArgs(argv) {
   }
   if (cfg.dates.some((d) => !/^\d{4}-\d{2}-\d{2}$/.test(d))) {
     throw new Error("--dates values must be YYYY-MM-DD");
+  }
+  if (cfg.shutdownDates.some((d) => !/^\d{4}-\d{2}-\d{2}$/.test(d))) {
+    throw new Error("--shutdown-dates values must be YYYY-MM-DD");
   }
 
   cfg.artifactDir = path.resolve(cfg.artifactDir);
@@ -629,10 +640,16 @@ async function textForScope(page, scope) {
 function dateDisplayRegex(date) {
   const [year, month, day] = date.split("-").map(Number);
   if (!year || !month || !day) return new RegExp(date.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
-  const monthName = new Intl.DateTimeFormat("en-US", { month: "short", timeZone: "America/Los_Angeles" }).format(
+  const shortMonth = new Intl.DateTimeFormat("en-US", { month: "short", timeZone: "America/Los_Angeles" }).format(
     new Date(Date.UTC(year, month - 1, day, 12)),
   );
-  return new RegExp(`${date}|${monthName}\\s+${day},\\s*${year}|${month}/${day}/${year}`, "i");
+  const longMonth = new Intl.DateTimeFormat("en-US", { month: "long", timeZone: "America/Los_Angeles" }).format(
+    new Date(Date.UTC(year, month - 1, day, 12)),
+  );
+  return new RegExp(
+    `${date}|${shortMonth}\\s+${day},\\s*${year}|${longMonth}\\s+${day},\\s*${year}|${shortMonth}\\s+${day}\\b|${longMonth}\\s+${day}\\b|${month}/${day}/${year}`,
+    "i",
+  );
 }
 
 function urlParamMatches(page, key, value) {
@@ -848,6 +865,42 @@ async function selectDateIfAvailable(page, cfg, date) {
   return true;
 }
 
+async function selectableDateControlVisible(page, date) {
+  const matcher = dateDisplayRegex(date);
+  const summaryLike = /current selection|desired reservation date|date summary|^date\s+\d{4}-\d{2}-\d{2}\b/i;
+  const scope = await activeControlScope(page);
+  const controls = scope.locator('button, [role="button"], a');
+  const count = Math.min(await controls.count().catch(() => 0), 200);
+  for (let i = 0; i < count; i += 1) {
+    const control = controls.nth(i);
+    if (!(await isVisibleEnabled(control))) continue;
+    const label = await buttonLabel(control, "");
+    const text = await control.innerText({ timeout: 500 }).catch(() => "");
+    const details = `${label} ${text}`.replace(/\s+/g, " ").trim();
+    if (summaryLike.test(details)) continue;
+    if (matcher.test(details)) return true;
+  }
+  return false;
+}
+
+async function wrongWeekOnlySelectable(page, cfg) {
+  if (!cfg.shutdownDates.length) return null;
+  const targets = datesToTry(cfg);
+  const targetVisible = [];
+  for (const date of targets) {
+    if (await selectableDateControlVisible(page, date)) targetVisible.push(date);
+  }
+  if (targetVisible.length > 0) return null;
+
+  const shutdownVisible = [];
+  for (const date of cfg.shutdownDates) {
+    if (await selectableDateControlVisible(page, date)) shutdownVisible.push(date);
+  }
+  if (!shutdownVisible.length) return null;
+
+  return `Only wrong-week date controls are selectable (${shutdownVisible.join(", ")}); target dates are ${targets.join(", ")}.`;
+}
+
 function timeRegexes(cfg) {
   const regexes = [];
   if (cfg.searchTime) {
@@ -989,6 +1042,9 @@ async function scanDatesAndReserve(page, cfg) {
       const result = await clickTowardCheckout(page, cfg);
       if (result) return { ok: true, result, date, partySize: cfg.partySize };
     }
+
+    const shutdownReason = await wrongWeekOnlySelectable(page, cfg);
+    if (shutdownReason) return { ok: false, shutdown: true, reason: shutdownReason };
   }
   return { ok: false };
 }
@@ -1082,6 +1138,11 @@ async function runReservation(cfg) {
     }
 
     const result = await scanDatesAndReserve(page, cfg);
+    if (result.shutdown) {
+      notify("Tock helper stopped", result.reason);
+      await context.close();
+      return;
+    }
     if (result.ok) {
       notify(
         "Tock reservation action needed",

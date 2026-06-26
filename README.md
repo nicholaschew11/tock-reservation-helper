@@ -33,9 +33,10 @@ The scheduled runtime uses its own preserved `tock-profile` under the launchd
 runtime folder. Logging in only in the workspace profile is not enough for
 launchd.
 
-The checked-in defaults target Fu Hui Hua, party size 4 on July 8, 2026 for
-the June 26, 2026 8:00 PM PDT release. A different user can point the same
-helper at another Tock page with environment variables or CLI flags:
+The checked-in defaults target Fu Hui Hua, party size 4 on July 8, 2026, with
+July 9 and July 10 as backups, for the June 26, 2026 8:00 PM PDT release. A
+different user can point the same helper at another Tock page with environment
+variables or CLI flags:
 
 ```sh
 TOCK_PAGE_URL="https://www.exploretock.com/example/experience/123/example" \

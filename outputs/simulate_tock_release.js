@@ -6,11 +6,21 @@ import process from "node:process";
 import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 
-const requestedDates = [
-  "2026-07-08",
-];
-const availableDates = ["2026-07-08"];
-const availablePartySizes = [4];
+function parseListEnv(name, fallback) {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+  return raw
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
+const requestedDates = parseListEnv("SIM_REQUESTED_DATES", ["2026-07-08", "2026-07-09", "2026-07-10"]);
+const calendarDates = parseListEnv("SIM_CALENDAR_DATES", requestedDates);
+const availableDates = parseListEnv("SIM_AVAILABLE_DATES", ["2026-07-08"]);
+const availablePartySizes = parseListEnv("SIM_AVAILABLE_PARTY_SIZES", ["4"]).map(Number);
+const shutdownDates = parseListEnv("SIM_SHUTDOWN_DATES", []);
+const expectedResult = process.env.SIM_EXPECT || "checkout";
 const releaseAt = Date.now() + 6_000;
 let checkoutHit = null;
 let leftCheckoutHit = null;
@@ -79,7 +89,7 @@ function htmlForPage(url) {
         Date ${initialDate}
       </button>
       <div id="dates">
-        ${requestedDates.map((date) => `<button type="button" data-date="${date}">${date}</button>`).join("\n")}
+        ${calendarDates.map((date) => `<button type="button" data-date="${date}">${date}</button>`).join("\n")}
       </div>
       <div id="availability" aria-live="polite"></div>
     </section>
@@ -202,6 +212,7 @@ function runHelper(pageUrl, profileDir) {
     "0",
     "--closed-weekdays",
     "1,2",
+    ...(shutdownDates.length ? ["--shutdown-dates", shutdownDates.join(",")] : []),
     "--no-opportunistic-first",
     "--lead-ms",
     "4000",
@@ -267,27 +278,46 @@ const profileDir = await fs.mkdtemp(path.join(os.tmpdir(), "fuhuihua-sim-profile
 
 console.log(`Simulation server: ${baseUrl}`);
 console.log(`Fake release: ${new Date(releaseAt).toISOString()}`);
-console.log(`Only available simulated date: ${availableDates.join(", ")}`);
+console.log(`Requested simulated dates: ${requestedDates.join(", ")}`);
+console.log(`Selectable simulated dates: ${calendarDates.join(", ")}`);
+console.log(`Available simulated dates: ${availableDates.join(", ")}`);
 console.log(`Only available simulated party size: ${availablePartySizes.join(", ")}`);
+if (shutdownDates.length) console.log(`Shutdown simulated dates: ${shutdownDates.join(", ")}`);
 
 try {
   const result = await runHelper(baseUrl, profileDir);
-  const passed =
-    result.code === 0 &&
-    checkoutHit?.includes("date=2026-07-08") &&
-    checkoutHit?.includes("size=4") &&
-    !leftCheckoutHit &&
-    /Reached checkout/.test(result.output);
+  let passed = false;
+  if (expectedResult === "shutdown") {
+    passed =
+      result.code === 0 &&
+      !checkoutHit &&
+      !leftCheckoutHit &&
+      /Tock helper stopped: Only wrong-week date controls are selectable/.test(result.output);
+  } else {
+    const expectedDate = process.env.SIM_EXPECT_CHECKOUT_DATE || availableDates.find((date) => requestedDates.includes(date));
+    passed =
+      result.code === 0 &&
+      !!expectedDate &&
+      checkoutHit?.includes(`date=${expectedDate}`) &&
+      checkoutHit?.includes("size=4") &&
+      !leftCheckoutHit &&
+      /Reached checkout/.test(result.output);
+  }
 
   if (!passed) {
     console.error("\nSIMULATION FAILED");
     console.error(`helper exit code: ${result.code}`);
     console.error(`checkout hit: ${checkoutHit || "(none)"}`);
     console.error(`left checkout hit: ${leftCheckoutHit || "(none)"}`);
+    console.error(`expected result: ${expectedResult}`);
     process.exitCode = 1;
   } else {
     console.log("\nSIMULATION PASSED");
-    console.log(`Reached simulated checkout: ${checkoutHit}`);
+    if (checkoutHit) {
+      console.log(`Reached simulated checkout: ${checkoutHit}`);
+    } else {
+      console.log("Stopped before checkout as expected.");
+    }
   }
 } finally {
   server.close();

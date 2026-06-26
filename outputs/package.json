@@ -10,6 +10,7 @@
     "normal-login": "./normal_chrome_login.sh",
     "import-session": "./import_chrome_tock_session.sh",
     "simulate": "node ./simulate_tock_release.js",
+    "simulate:shutdown-week": "SIM_EXPECT=shutdown SIM_CALENDAR_DATES=2026-06-29,2026-06-30,2026-07-01,2026-07-02,2026-07-03,2026-07-04,2026-07-05 SIM_AVAILABLE_DATES=2026-06-29 SIM_SHUTDOWN_DATES=2026-06-29,2026-06-30,2026-07-01,2026-07-02,2026-07-03,2026-07-04,2026-07-05 node ./simulate_tock_release.js",
     "preflight": "node ./preflight_fuhuihua_readiness.js",
     "preflight:runtime": "TOCK_RUNTIME_LABEL=\"${TOCK_LAUNCHD_LABEL:-com.codex.fuhuihua-tock}\"; TOCK_PROFILE_DIR=\"$HOME/Library/Application Support/$TOCK_RUNTIME_LABEL/tock-profile\" TOCK_PREFLIGHT_DIR=\"$HOME/Library/Application Support/$TOCK_RUNTIME_LABEL/artifacts/preflight\" node ./preflight_fuhuihua_readiness.js",
     "start": "node ./fuhuihua_tock_reservation.js",

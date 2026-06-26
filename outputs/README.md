@@ -6,7 +6,9 @@ keeps the browser open for you to finish login, captcha, or payment yourself.
 It does not bypass Tock controls and it does not submit payment.
 
 The checked-in defaults target Fu Hui Hua on Friday, June 26, 2026 at 8:00 PM
-PDT, trying party size 4 only for July 8, 2026. Use environment variables or
+PDT, trying party size 4 for July 8 first, then July 9 and July 10 as backups.
+If the only selectable dates are the prior release week, June 29 through July 5,
+the helper stops instead of booking the wrong week. Use environment variables or
 CLI flags to target a different restaurant, release time, date, or party size.
 
 ## One-time setup
@@ -107,6 +109,9 @@ To remove the schedule:
 ```sh
 # Run a local fake Tock release and verify the helper reaches checkout.
 npm run simulate
+
+# Verify it stops when only the prior release week is selectable.
+npm run simulate:shutdown-week
 
 # No-click readiness check using this folder's profile.
 npm run preflight
