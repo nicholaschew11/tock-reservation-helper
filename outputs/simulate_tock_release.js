@@ -7,9 +7,9 @@ import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 
 const requestedDates = [
-  "2026-06-24",
+  "2026-07-08",
 ];
-const availableDates = ["2026-06-24"];
+const availableDates = ["2026-07-08"];
 const availablePartySizes = [4];
 const releaseAt = Date.now() + 6_000;
 let checkoutHit = null;
@@ -65,7 +65,7 @@ function htmlForPage(url) {
       <p id="outer-party-size-label">2 guests</p>
       <button aria-label="Fewer guests" type="button" data-outer-control="minus">-</button>
       <button aria-label="More guests" type="button" data-outer-control="plus">+</button>
-      <button type="button" aria-label="2026-06-24" data-outer-control="date">24</button>
+      <button type="button" aria-label="2026-07-08" data-outer-control="date">8</button>
     </aside>
     <section role="dialog" aria-label="Search availability for Winter's Depth, Spring Approaches experience at Fù Huì Huá">
       <h2>Winter's Depth, Spring Approaches experience</h2>
@@ -274,7 +274,7 @@ try {
   const result = await runHelper(baseUrl, profileDir);
   const passed =
     result.code === 0 &&
-    checkoutHit?.includes("date=2026-06-24") &&
+    checkoutHit?.includes("date=2026-07-08") &&
     checkoutHit?.includes("size=4") &&
     !leftCheckoutHit &&
     /Reached checkout/.test(result.output);

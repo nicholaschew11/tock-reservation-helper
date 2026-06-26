@@ -5,8 +5,8 @@ keeps the browser open for you to finish login, captcha, or payment yourself.
 
 It does not bypass Tock controls and it does not submit payment.
 
-The checked-in defaults target Fu Hui Hua on Friday, June 19, 2026 at 8:00 PM
-PDT, trying party size 4 only for June 24, 2026. Use environment variables or
+The checked-in defaults target Fu Hui Hua on Friday, June 26, 2026 at 8:00 PM
+PDT, trying party size 4 only for July 8, 2026. Use environment variables or
 CLI flags to target a different restaurant, release time, date, or party size.
 
 ## One-time setup
@@ -74,8 +74,10 @@ cd outputs
 ./install_launchd_schedule.sh
 ```
 
-With the checked-in defaults, the LaunchAgent starts at 7:55 PM local time on
-June 19 and the script waits for the exact 8:00 PM PDT release timestamp.
+With the checked-in defaults, the LaunchAgent starts early on June 26 at 4:55
+PM local time and the script waits for the exact 8:00 PM PDT release timestamp.
+Starting early keeps the schedule safe if the laptop is in either Pacific or
+Eastern time.
 
 For a different target, pass the same target settings to the installer. It
 copies them into the LaunchAgent environment:

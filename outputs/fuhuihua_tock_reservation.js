@@ -17,8 +17,8 @@ const DEFAULTS = {
   pageUrl: PAGE_URL,
   partySize: 4,
   partySizes: null,
-  releaseAt: "2026-06-19T20:00:00-07:00",
-  date: "2026-06-24",
+  releaseAt: "2026-06-26T20:00:00-07:00",
+  date: "2026-07-08",
   searchTime: "",
   profileDir: path.join(__dirname, "tock-profile"),
   leadMs: 5 * 60 * 1000,
@@ -56,9 +56,9 @@ Usage:
   node fuhuihua_tock_reservation.js --now --stop-after-ms 15000
 
 Defaults:
-  release time: 2026-06-19 8:00 PM PDT
+  release time: 2026-06-26 8:00 PM PDT
   party size:   4
-  start date:   2026-06-24
+  start date:   2026-07-08
 
 Options:
   --login                  Open a persistent browser profile so you can log in.

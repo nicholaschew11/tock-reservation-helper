@@ -11,7 +11,7 @@ const DEFAULT_PAGE_URL =
 
 const cfg = {
   pageUrl: process.env.TOCK_PAGE_URL || DEFAULT_PAGE_URL,
-  date: process.env.TOCK_DATE || "2026-06-24",
+  date: process.env.TOCK_DATE || "2026-07-08",
   partySize: process.env.TOCK_PARTY_SIZE || (process.env.TOCK_PARTY_SIZES || "4").split(",")[0].trim(),
   profileDir: process.env.TOCK_PROFILE_DIR || path.join(__dirname, "tock-profile"),
   browserChannel: process.env.TOCK_BROWSER_CHANNEL ?? "chrome",
